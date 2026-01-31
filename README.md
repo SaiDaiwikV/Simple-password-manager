@@ -26,8 +26,8 @@ to safely store and manage user credentials.
     ├── app.py
     ├── security.py
     ├── vault.py
-    ├── master.json
-    ├── vault.enc
+    ├── master.json -- this is will be generated at runtime of the program
+    ├── vault.enc -- this is will be generated at runtime of the program
 
 ------------------------------------------------------------------------
 
