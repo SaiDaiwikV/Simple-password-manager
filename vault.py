@@ -6,9 +6,6 @@ VAULT_FILE = "vault.enc"
 
 
 def load_vault(key):
-    """
-    Loads and decrypts vault data
-    """
     if not os.path.exists(VAULT_FILE):
         return {}
 
@@ -20,27 +17,22 @@ def load_vault(key):
 
 
 def save_vault(data, key):
-    """
-    Encrypts and saves vault data
-    """
     encrypted = encrypt_data(json.dumps(data), key)
+
     with open(VAULT_FILE, "wb") as f:
         f.write(encrypted)
 
 
 def add_credential(site, username, password, key):
-    """
-    Adds or updates a credential
-    """
     vault = load_vault(key)
-    vault[site] = {"username": username, "password": password}
+    vault[site] = {
+        "username": username,
+        "password": password
+    }
     save_vault(vault, key)
 
 
-def export_vault_backup():
-    """
-    Creates encrypted backup of vault
-    """
+def export_backup():
     if not os.path.exists(VAULT_FILE):
         return False
 
@@ -51,3 +43,19 @@ def export_vault_backup():
         b.write(data)
 
     return True
+
+def reencrypt_vault(old_key, new_key):
+    """
+    Re-encrypt vault with new encryption key
+    """
+    if not os.path.exists(VAULT_FILE):
+        return
+
+    with open(VAULT_FILE, "rb") as f:
+        encrypted = f.read()
+
+    data = decrypt_data(encrypted, old_key)
+    new_encrypted = encrypt_data(data, new_key)
+
+    with open(VAULT_FILE, "wb") as f:
+        f.write(new_encrypted)

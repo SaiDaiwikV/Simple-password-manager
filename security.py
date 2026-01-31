@@ -10,13 +10,8 @@ from cryptography.hazmat.backends import default_backend
 MASTER_FILE = "master.json"
 
 
+# ---------------- CREATE MASTER PASSWORD ----------------
 def create_master_password(password):
-    """
-    Creates master password:
-    - Generates random salt
-    - Hashes password using SHA-512
-    - Stores salt + hash
-    """
     salt = os.urandom(16)
     hashed = hashlib.sha512(salt + password.encode()).hexdigest()
 
@@ -27,27 +22,24 @@ def create_master_password(password):
         }, f)
 
 
-def verify_master_password(password):
-    """
-    Verifies entered master password
-    """
-    if not os.path.exists(MASTER_FILE):
-        create_master_password(password)
-        return True, password
+# ---------------- CHECK IF MASTER EXISTS ----------------
+def master_exists():
+    return os.path.exists(MASTER_FILE)
 
+
+# ---------------- VERIFY MASTER PASSWORD ----------------
+def verify_master_password(password):
     with open(MASTER_FILE, "r") as f:
         data = json.load(f)
 
     salt = base64.b64decode(data["salt"])
     hashed = hashlib.sha512(salt + password.encode()).hexdigest()
 
-    return hashed == data["hash"], password
+    return hashed == data["hash"]
 
 
-def generate_encryption_key(password):
-    """
-    Derives encryption key using PBKDF2
-    """
+# ---------------- GENERATE ENCRYPTION KEY ----------------
+def generate_key(password):
     with open(MASTER_FILE, "r") as f:
         data = json.load(f)
 
@@ -64,15 +56,29 @@ def generate_encryption_key(password):
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
 
+# ---------------- ENCRYPT / DECRYPT ----------------
 def encrypt_data(data, key):
-    """
-    Encrypts data using AES (Fernet)
-    """
     return Fernet(key).encrypt(data.encode())
 
 
 def decrypt_data(data, key):
-    """
-    Decrypts encrypted data
-    """
     return Fernet(key).decrypt(data).decode()
+
+def update_master_password(old_password, new_password):
+    """
+    Verifies old password, then updates master password
+    """
+    if not verify_master_password(old_password):
+        return False
+
+    # Create new salt & hash
+    salt = os.urandom(16)
+    new_hash = hashlib.sha512(salt + new_password.encode()).hexdigest()
+
+    with open(MASTER_FILE, "w") as f:
+        json.dump({
+            "salt": base64.b64encode(salt).decode(),
+            "hash": new_hash
+        }, f)
+
+    return True
